@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Generator</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "@google/genai": "https://esm.sh/@google/genai@^0.7.0"
+    }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="global-actions">
+    <div class="theme-toggle-container">
+      <button id="themeButton" class="secondary-action-btn 3d-pop theme-btn" aria-label="Toggle theme">
+        <span id="currentThemeIcon">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65 74.5T440-660q0 85 59.5 144.5T644-456q49 0 94.5-24t74.5-65q2 13 3 26.5t1 27.5q0 150-105 255T480-120Z"/></svg>
+        </span>
+        Theme
+      </button>
+      <div id="themeDropdown" class="dropdown-menu theme-dropdown">
+        <div class="dropdown-item" id="themeLight">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 80q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80Zm-440-320v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-101 57-57 101 101-57 57Zm548 548-101-101 57-57 101 101-57 57ZM212-212l101-101 57 57-101 101-57-57Zm548-548 101-101 57 57-101 101-57-57Z"/></svg>
+          Light Mode
+        </div>
+        <div class="dropdown-item" id="themeDark">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65 74.5T440-660q0 85 59.5 144.5T644-456q49 0 94.5-24t74.5-65q2 13 3 26.5t1 27.5q0 150-105 255T480-120Z"/></svg>
+          Dark Mode
+        </div>
+        <div class="dropdown-item" id="themeSystem">
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Zm240 0h160v-40H400v40Z"/></svg>
+          System Default
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>Flashcard Generator</h1>
+    <p>
+      Enter a topic or a list of terms and definitions to generate flashcards using the Gemini API.
+    </p>
+    <div class="input-wrapper">
+      <textarea
+        id="topicInput"
+        placeholder="Enter topic (e.g., Ancient Rome) or 'Term: Definition' pairs..."
+      ></textarea>
+      <div class="input-actions">
+        <div class="dropdown-container">
+          <button id="addFilesButton" class="secondary-action-btn 3d-pop">
+            <span class="plus-icon">+</span> Add Files
+          </button>
+          <div id="addFilesDropdown" class="dropdown-menu">
+            <div class="dropdown-item" id="addImgOpt">
+              <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0-33-23.5-56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/></svg>
+              Add an image
+            </div>
+            <div class="dropdown-item" id="addVidOpt">
+              <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="m160-160-80-80v-480l80-80h480l80 80v480l-80 80H160Zm0-80h480v-480H160v480Zm80-80 120-160 90 120 120-160 150 200H240Zm-80 80v-480 480Z" opacity="0"/><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-840h480q33 0 56.5 23.5T720-760v180l160-160v480L720-380v140q0 33-23.5 56.5T640-160H160Zm0-80h480v-480H160v480Zm0 0v-480 480Z"/></svg>
+              Add a video
+            </div>
+            <div class="dropdown-item" id="addDocOpt">
+              <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480q0-29.7 21.15-50.85Q282.3-768 312-768h312l192 192v360q0 29.7-21.15 50.85Q773.7-144 744-144H312Zm288-504v-48H312v480h432v-312H600Zm-288 0v480-480Z" opacity="0"/><path d="M312-144q-29.7 0-50.85-21.15Q240-186.3 240-216v-480q0-29.7 21.15-50.85Q282.3-768 312-768h312l192 192v360q0 29.7-21.15 50.85Q773.7-144 744-144H312Zm288-504v-48H312v480h432v-312H600Zm-288 0v480-480Z"/></svg>
+              Add a PDF or DOCX
+            </div>
+          </div>
+        </div>
+        <div id="errorMessage" class="error-message mini-acknowledgement"></div>
+        <input type="file" id="fileInput" hidden multiple>
+      </div>
+    </div>
+    <button id="generateButton" class="3d-pop">Generate Flashcards</button>
+    <div id="statusMessage" class="status-message"></div>
+    <div id="flashcardsContainer" class="flashcards-container">
+      <!-- Flashcards will be generated here -->
+    </div>
+  </div>
+  <script type="module" src="index.tsx"></script>
+</body>
+</html>
