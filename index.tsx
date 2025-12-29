@@ -11,6 +11,7 @@ interface Flashcard {
 
 const topicInput = document.getElementById('topicInput') as HTMLTextAreaElement;
 const generateButton = document.getElementById('generateButton') as HTMLButtonElement;
+const downloadButton = document.getElementById('downloadButton') as HTMLButtonElement;
 const addFilesButton = document.getElementById('addFilesButton') as HTMLButtonElement;
 const addFilesDropdown = document.getElementById('addFilesDropdown') as HTMLDivElement;
 const fileInput = document.getElementById('fileInput') as HTMLInputElement;
@@ -34,6 +35,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 let processingInterval: number | null = null;
 let addedUrls: string[] = []; 
 let isShowingResults = false;
+let currentFlashcards: Flashcard[] = [];
 
 const recycleIcon = `<svg style="margin-right: 8px; vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 126.5 24.5T708-708l60-60v220H548l80-80q-34-31-77.5-46.5T480-690q-104 0-177 73t-73 177q0 104 73 177t177 73q72 0 129.5-36t92.5-98h86q-39 101-127 162.5T480-160Z"/></svg>`;
 
@@ -172,8 +174,10 @@ const setButtonState = (generated: boolean) => {
   isShowingResults = generated;
   if (generated) {
     generateButton.innerHTML = recycleIcon + "Generate Another";
+    downloadButton.classList.remove('hidden');
   } else {
     generateButton.textContent = "Generate Flashcards";
+    downloadButton.classList.add('hidden');
   }
 };
 
@@ -184,9 +188,26 @@ const resetInputs = () => {
   flashcardsContainer.textContent = "";
   statusMessage.textContent = "";
   errorMessage.textContent = "";
+  currentFlashcards = [];
   updateFeedback();
   setButtonState(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
+
+downloadButton.addEventListener('click', () => {
+  if (currentFlashcards.length === 0) return;
+  
+  const content = currentFlashcards.map(f => `${f.term}: ${f.definition}`).join('\n');
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'flashcards.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
 
 generateButton.addEventListener('click', async () => {
   if (isShowingResults) {
@@ -215,33 +236,51 @@ generateButton.addEventListener('click', async () => {
 
   try {
     const parts: any[] = [];
-    let promptText = `Generate flashcards EXCLUSIVELY based on the provided content. 
-DO NOT use your own internal knowledge to add facts or definitions that are not explicitly present in the sources provided below.
+    let promptText = `Generate flashcards based on the provided topic and attached multi-modal content.
 
-TOPIC OF INTEREST: ${topic || "General"}
+TOPIC OF INTEREST: ${topic || "General Study"}
 
-SOURCES PROVIDED:
-1. Input Text/Topic: ${topic}
+INSTRUCTIONS:
+1. Carefully analyze all provided sources (Text, Images, Documents, Videos).
+2. Extract key terms, concepts, definitions, or equations.
+3. If a Video is provided, analyze the visual information and any text displayed within the frames.
+4. If a PDF is provided, extract high-level academic concepts and specific definitions.
+5. Create concise, clear Term-Definition pairs suitable for study.
+6. Return only the extracted information from these sources.
+
+SOURCES:
+- Input Topic/Description: ${topic || "N/A"}
 `;
 
-    if (hasUrls) promptText += `\n2. External URLs: ${addedUrls.join(", ")}\n`;
+    if (hasUrls) promptText += `- External URLs to reference: ${addedUrls.join(", ")}\n`;
+    
     if (hasFiles) {
-      promptText += `\n3. Uploaded Files: (See attached image/media parts if applicable). If the files are non-visual, prioritize extracting key concepts from any visual data or textual cues in the prompt.\n`;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.type.startsWith('image/')) {
-          const base64 = await fileToBase64(file);
-          parts.push({ inlineData: { data: base64, mimeType: file.type } });
+        const base64 = await fileToBase64(file);
+        
+        let mimeType = file.type;
+        if (!mimeType) {
+            if (file.name.endsWith('.pdf')) mimeType = 'application/pdf';
+            else if (file.name.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         }
+
+        parts.push({ 
+          inlineData: { 
+            data: base64, 
+            mimeType: mimeType || 'application/octet-stream' 
+          } 
+        });
       }
     }
+
     parts.push({ text: promptText });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: { parts },
       config: {
-        systemInstruction: "You are a strict flashcard extraction assistant. You must ONLY use the information provided in the input parts (text, images, or URLs). Do NOT add external information, historical context, or general definitions that are not found within the provided sources. If the sources are empty or insufficient, return an empty array. Format the output as a JSON array of objects with 'term' and 'definition' keys.",
+        systemInstruction: "You are a professional educational assistant specializing in flashcard creation from multi-modal inputs. Your goal is to identify core concepts from images, videos, and documents (PDFs). For documents, focus on headings, bolded text, and definitions. For videos, focus on the subject matter and visible text. Format your output strictly as a JSON array of objects with 'term' and 'definition' keys. Ensure accuracy and pedagogical value.",
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }],
         responseSchema: {
@@ -262,8 +301,9 @@ SOURCES PROVIDED:
     stopProcessingAnimation();
 
     if (flashcards.length > 0) {
-      statusMessage.textContent = 'Processing Complete!';
-      errorMessage.textContent = 'Success!';
+      currentFlashcards = flashcards;
+      statusMessage.textContent = `Generated ${flashcards.length} flashcards!`;
+      errorMessage.textContent = 'Extraction Success';
       errorMessage.style.color = 'light-dark(var(--light-success), var(--dark-success))';
 
       flashcards.forEach((flashcard, index) => {
@@ -299,14 +339,19 @@ SOURCES PROVIDED:
       });
 
       setButtonState(true);
+      
+      setTimeout(() => {
+        flashcardsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+
     } else {
-      errorMessage.textContent = 'No cards generated from provided content.';
-      statusMessage.textContent = 'Make sure the sources contain extractable information.';
+      errorMessage.textContent = 'No relevant concepts found in sources.';
+      statusMessage.textContent = 'Try a more specific topic or clearer document/video.';
     }
   } catch (error: unknown) {
     stopProcessingAnimation();
-    const detailedError = (error as Error)?.message || 'Error';
-    errorMessage.textContent = 'Generation failed.';
+    const detailedError = (error as Error)?.message || 'Generation error';
+    errorMessage.textContent = 'Could not process content.';
     errorMessage.style.color = 'light-dark(var(--light-error), var(--dark-error))';
     statusMessage.textContent = detailedError;
     statusMessage.style.color = 'light-dark(var(--light-error), var(--dark-error))';

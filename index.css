@@ -198,6 +198,19 @@ textarea:focus {
   transform: translateX(4px);
 }
 
+.main-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .action-separator {
   font-size: 14px;
   color: light-dark(var(--light-text-secondary), var(--dark-text-secondary));
@@ -285,12 +298,19 @@ button:disabled {
 .secondary-action-btn {
   background-color: light-dark(var(--light-primary), var(--dark-primary));
   color: #ffffff !important;
-  padding: 8px 18px;
-  font-size: 14px;
+  padding: 14px 28px; /* Standardize size with primary */
+  font-size: 16px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  border-radius: 10px;
+  border-radius: 12px;
+}
+
+/* Specific styling for the + Add Files smaller version */
+#addFilesButton {
+  padding: 8px 18px;
+  font-size: 14px;
 }
 
 .plus-icon {
@@ -300,12 +320,18 @@ button:disabled {
 
 #generateButton {
   display: flex;
-  margin: 20px auto 0 auto; /* Centered horizontally with auto margins */
+  margin: 0; /* Managed by .main-actions now */
   width: 100%;
   max-width: 320px;
   font-weight: bold;
   align-items: center;
   justify-content: center;
+}
+
+#downloadButton {
+  width: auto;
+  min-width: 160px;
+  background-color: light-dark(var(--light-success), var(--dark-success));
 }
 
 .status-message {
